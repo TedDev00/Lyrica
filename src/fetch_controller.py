@@ -258,6 +258,7 @@ async def fetch_lyrics_controller(
     # ── Sequential path ───────────────────────────────────────────────────────
     reg      = _registry()
     attempts = []
+    best_plain = None  # valid match without timestamps; fallback if nothing synced
 
     for fid in fetcher_ids:
         if fid not in reg:
@@ -280,6 +281,19 @@ async def fetch_lyrics_controller(
             val = validate_lyrics_match(artist_name, song_title, raw, threshold=0.75)
 
             if val["valid"]:
+                has_ts = bool(raw.get("timed_lyrics")) or bool(raw.get("hasTimestamps"))
+                # In synced mode, don't settle for a plain (untimed) match — many
+                # sources (e.g. lrclib) hold plain-only entries for CJK songs while
+                # a later source has the LRC. Keep it as a fallback and try on.
+                if timestamps and not has_ts:
+                    logger.info(
+                        f"~ [{api_name}] valid but no timestamps — keeping as "
+                        f"fallback, trying next"
+                    )
+                    if best_plain is None:
+                        best_plain = raw
+                    attempts.append({"api": api_name, "status": "valid_no_timestamps"})
+                    continue
                 logger.info(
                     f"✓ [{api_name}] accepted "
                     f"(artist={val['artist_match']} song={val['song_match']})"
@@ -298,5 +312,10 @@ async def fetch_lyrics_controller(
         except Exception as e:
             logger.error(f"[{api_name}] exception: {e}")
             attempts.append({"api": api_name, "status": "error", "message": str(e)})
+
+    # No timestamped result anywhere — return the best plain match if we found one.
+    if best_plain is not None:
+        logger.info("No timestamped lyrics found — returning best plain match")
+        return {"status": "success", "data": best_plain}
 
     return _err(f"No lyrics found for '{song_title}' by '{artist_name}'")
