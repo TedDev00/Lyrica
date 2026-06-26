@@ -31,9 +31,9 @@ FETCHER_MAP = {
 }
 
 # Synced-lyrics sequence: sources that natively return LRC timestamps
-DEFAULT_SYNCED_SEQUENCE = [2, 3, 4, 5, 6, 7]   # LRCLIB, YouTube, NetEase, Megalobiz, Musixmatch, SimpMusic
-# Plain-lyrics sequence: all active sources, Genius first for quality
-DEFAULT_PLAIN_SEQUENCE  = [1, 2, 3, 4, 5, 6, 7]
+ DEFAULT_SYNCED_SEQUENCE = [2, 3, 4, 5, 7]
+ # Plain-lyrics sequence: all active sources, Genius first for quality
+DEFAULT_PLAIN_SEQUENCE  = [1, 2, 3, 4, 5,7]
 # Fast (parallel) mode: best two reliable synced sources
 FAST_MODE_SEQUENCE      = [2, 3]   # LRCLIB + YouTube
 

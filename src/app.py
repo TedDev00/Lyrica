@@ -68,5 +68,29 @@ def create_app():
             return {"error": "unauthorized"}, 403
         return cache_stats()
     
+    # API-key gate for the data endpoints. If LYRICA_API_KEY is unset the gate is
+    # OFF (open) — so this is safe to deploy BEFORE you set the secret.
+    api_key_expected = os.getenv("LYRICA_API_KEY")
+
+    @app.before_request
+    def _require_api_key():
+        if request.method == "OPTIONS":
+            return None
+        if not api_key_expected:
+            return None  # auth disabled until the secret is set
+        path = request.path or ""
+        protected = (
+            path.startswith("/lyrics")
+            or path.startswith("/metadata")
+            or path.startswith("/trending")
+            or path.startswith("/suggestion")
+        )
+        if not protected:
+            return None
+        provided = request.headers.get("X-API-Key") or request.args.get("api_key")
+        if provided != api_key_expected:
+            return jsonify({"status": "error", "error": {"message": "unauthorized"}}), 401
+        return None
+
     register_routes(app)
     return app
